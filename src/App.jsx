@@ -133,6 +133,7 @@ export default function App() {
     if (session && page === "landing") { setPage("app"); setSection("qa"); if (!isVerified) setVerifyBanner(true); }
     if (session && page === "auth") { setPage("app"); setSection("qa"); }
     if (!session && page === "app") setPage("landing");
+    if (!session && page !== "landing" && page !== "auth") setPage("landing");
   }, [authLoading, session]);
 
   // Auto-detect school from email
