@@ -63,6 +63,7 @@ export default function App() {
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [verifyBanner, setVerifyBanner] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   // Signup profile fields (combined form)
   const [signupName, setSignupName] = useState("");
@@ -172,6 +173,13 @@ export default function App() {
     setAuthError(null);
     const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
     if (error) { setAuthError(error.message); return; }
+  };
+
+  const handleResetPassword = async () => {
+    setAuthError(null);
+    if (!authEmail.trim()) { setAuthError("Please enter your email address"); return; }
+    await supabase.auth.resetPasswordForEmail(authEmail.trim());
+    setResetSent(true);
   };
 
   const handleResendVerification = async () => {
@@ -653,41 +661,60 @@ export default function App() {
       <div style={{maxWidth:loginMode==="signup"?440:400,width:"100%",padding:"0 24px"}}>
         <div style={{textAlign:"center",marginBottom:28}}>
           <h1 style={{...hd(28),color:"#fff",margin:"0 0 6px",textDecorationColor:"#fff"}}>The Student Opinion</h1>
-          <p style={{fontSize:13,color:"rgba(255,255,255,.5)",margin:0,...sans}}>{loginMode==="signup"?"Create your account":"Welcome back"}</p>
+          <p style={{fontSize:13,color:"rgba(255,255,255,.5)",margin:0,...sans}}>{loginMode==="signup"?"Create your account":loginMode==="forgot"?"Reset your password":"Welcome back"}</p>
         </div>
         <div style={{background:"#141414",border:"1px solid #252525",borderRadius:6,padding:"28px 24px"}}>
-          <div style={{display:"flex",background:"#0A0A0A",borderRadius:4,overflow:"hidden",marginBottom:20}}>
-            <button style={{flex:1,fontSize:12,padding:"8px",border:"none",background:loginMode==="signup"?"#333":"transparent",color:loginMode==="signup"?"#fff":"#666",cursor:"pointer",...sans,fontWeight:600}} onClick={()=>{setLoginMode("signup");setAuthError(null)}}>Sign up</button>
-            <button style={{flex:1,fontSize:12,padding:"8px",border:"none",background:loginMode==="login"?"#333":"transparent",color:loginMode==="login"?"#fff":"#666",cursor:"pointer",...sans,fontWeight:600}} onClick={()=>{setLoginMode("login");setAuthError(null)}}>Log in</button>
-          </div>
+          {loginMode!=="forgot" && <div style={{display:"flex",background:"#0A0A0A",borderRadius:4,overflow:"hidden",marginBottom:20}}>
+            <button style={{flex:1,fontSize:12,padding:"8px",border:"none",background:loginMode==="signup"?"#333":"transparent",color:loginMode==="signup"?"#fff":"#666",cursor:"pointer",...sans,fontWeight:600}} onClick={()=>{setLoginMode("signup");setAuthError(null);setResetSent(false)}}>Sign up</button>
+            <button style={{flex:1,fontSize:12,padding:"8px",border:"none",background:loginMode==="login"?"#333":"transparent",color:loginMode==="login"?"#fff":"#666",cursor:"pointer",...sans,fontWeight:600}} onClick={()=>{setLoginMode("login");setAuthError(null);setResetSent(false)}}>Log in</button>
+          </div>}
           {authError && <p style={{fontSize:12,color:"#E55",margin:"0 0 14px",background:"rgba(255,0,0,.1)",padding:"8px 12px",borderRadius:4,...sans}}>{authError}</p>}
-          <p style={lbl}>Email</p>
-          <input placeholder="you@university.edu" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} style={{...s.input,marginBottom:12}} />
-          <p style={lbl}>Password</p>
-          <input type="password" placeholder="••••••••" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} style={{...s.input,marginBottom:loginMode==="signup"?12:20}} />
-          {loginMode==="signup" && <>
-            <p style={lbl}>Display name</p>
-            <input placeholder="Your name" value={signupName} onChange={e=>setSignupName(e.target.value)} style={{...s.input,marginBottom:12}} />
-            <p style={lbl}>School</p>
-            <input placeholder="e.g. Purdue University" value={signupSchool} onChange={e=>setSignupSchool(e.target.value)} style={{...s.input,marginBottom:12}} />
-            <div style={{display:"flex",gap:10,marginBottom:14}}>
-              <div style={{flex:1}}>
-                <p style={lbl}>Degree program</p>
-                <select value={signupDegree} onChange={e=>setSignupDegree(e.target.value)} style={{...s.input,padding:"9px 10px",cursor:"pointer"}}>
-                  <option value="">Select...</option>
-                  {DEGREE_OPTIONS.map(d=><option key={d} value={d}>{d}</option>)}
-                </select>
+          {loginMode==="forgot" ? (
+            resetSent ? <>
+              <p style={{fontSize:14,color:"rgba(255,255,255,.7)",margin:"0 0 16px",lineHeight:1.6,...sans}}>If an account exists with that email, we've sent a password reset link. Check your inbox (or spam folder).</p>
+              <p style={{fontSize:12,textAlign:"center",margin:0,...sans}}>
+                <span style={{color:"rgba(255,255,255,.5)",cursor:"pointer"}} onClick={()=>{setLoginMode("login");setResetSent(false);setAuthError(null)}}>← Back to login</span>
+              </p>
+            </> : <>
+              <p style={lbl}>Email</p>
+              <input placeholder="you@university.edu" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} style={{...s.input,marginBottom:16}} />
+              <button style={{...s.btn(true),width:"100%",padding:"11px 0",background:"#fff",color:"#111"}} onClick={handleResetPassword}>Send reset link</button>
+              <p style={{fontSize:12,margin:"16px 0 0",textAlign:"center",...sans}}>
+                <span style={{color:"rgba(255,255,255,.5)",cursor:"pointer"}} onClick={()=>{setLoginMode("login");setAuthError(null)}}>← Back to login</span>
+              </p>
+            </>
+          ) : <>
+            <p style={lbl}>Email</p>
+            <input placeholder="you@university.edu" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} style={{...s.input,marginBottom:12}} />
+            <p style={lbl}>Password</p>
+            <input type="password" placeholder="••••••••" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} style={{...s.input,marginBottom:loginMode==="signup"?12:8}} />
+            {loginMode==="login" && <p style={{fontSize:11,margin:"0 0 14px",textAlign:"right",...sans}}>
+              <span style={{color:"rgba(255,255,255,.5)",cursor:"pointer"}} onClick={()=>{setLoginMode("forgot");setAuthError(null);setResetSent(false)}}>Forgot password?</span>
+            </p>}
+            {loginMode==="signup" && <>
+              <p style={lbl}>Display name</p>
+              <input placeholder="Your name" value={signupName} onChange={e=>setSignupName(e.target.value)} style={{...s.input,marginBottom:12}} />
+              <p style={lbl}>School</p>
+              <input placeholder="e.g. Purdue University" value={signupSchool} onChange={e=>setSignupSchool(e.target.value)} style={{...s.input,marginBottom:12}} />
+              <div style={{display:"flex",gap:10,marginBottom:14}}>
+                <div style={{flex:1}}>
+                  <p style={lbl}>Degree program</p>
+                  <select value={signupDegree} onChange={e=>setSignupDegree(e.target.value)} style={{...s.input,padding:"9px 10px",cursor:"pointer"}}>
+                    <option value="">Select...</option>
+                    {DEGREE_OPTIONS.map(d=><option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div style={{flex:1}}>
+                  <p style={lbl}>Major</p>
+                  <input placeholder="e.g. Political Science" value={signupMajor} onChange={e=>setSignupMajor(e.target.value)} style={s.input} />
+                </div>
               </div>
-              <div style={{flex:1}}>
-                <p style={lbl}>Major</p>
-                <input placeholder="e.g. Political Science" value={signupMajor} onChange={e=>setSignupMajor(e.target.value)} style={s.input} />
-              </div>
-            </div>
+            </>}
+            <button style={{...s.btn(true),width:"100%",padding:"11px 0",background:"#fff",color:"#111"}} onClick={loginMode==="signup"?handleSignUp:handleLogin}>{loginMode==="signup"?"Create account":"Sign in"}</button>
+            <p style={{fontSize:12,margin:"16px 0 0",textAlign:"center",...sans}}>
+              <span style={{color:"rgba(255,255,255,.5)",cursor:"pointer"}} onClick={()=>go("landing")}>← Back</span>
+            </p>
           </>}
-          <button style={{...s.btn(true),width:"100%",padding:"11px 0",background:"#fff",color:"#111"}} onClick={loginMode==="signup"?handleSignUp:handleLogin}>{loginMode==="signup"?"Create account":"Sign in"}</button>
-          <p style={{fontSize:12,margin:"16px 0 0",textAlign:"center",...sans}}>
-            <span style={{color:"rgba(255,255,255,.5)",cursor:"pointer"}} onClick={()=>go("landing")}>← Back</span>
-          </p>
         </div>
       </div>
     </div>
